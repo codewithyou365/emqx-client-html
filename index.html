@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MQTT Client Interface</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button.close {
+            background-color: #f44336;
+        }
+
+        button.close:hover {
+            background-color: #da190b;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .clear-button {
+            background-color: #ff9800;
+            font-size: 14px;
+            padding: 6px 12px;
+        }
+
+        .clear-button:hover {
+            background-color: #e68a00;
+        }
+
+        .message-list {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .message-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .message-item:last-child {
+            border-bottom: none;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e8f5e9;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .client-list {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f0f8ff;
+        }
+
+        .client-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .client-item:hover {
+            background-color: #bbdefb;
+        }
+
+        .client-list-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0d47a1;
+        }
+
+        .no-clients {
+            color: #777;
+            font-style: italic;
+        }
+
+        .server-settings {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+        }
+
+        .server-settings-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #33691e;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 1;
+        }
+
+        .input-group button {
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .user-form-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .user-form-group .form-group {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+<h1>MQTT Client Interface</h1>
+<div class="container">
+    <div class="control-panel">
+        <div class="server-settings">
+            <label for="serverDomain">MQTT Server URL:</label>
+            <div class="input-group">
+                <input type="text" id="serverDomain">
+                <button onclick="updateServerDomain()">Update Server</button>
+            </div>
+        </div>
+
+        <!-- Connected Clients List -->
+        <div class="client-list">
+            <div class="client-list-header">Connected Clients:</div>
+            <div id="clientList">
+                <div class="no-clients">No clients connected</div>
+            </div>
+        </div>
+        <div class="user-form-group">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="topic">Topic:</label>
+            <input type="text" id="topic" placeholder="Enter topic">
+        </div>
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <input type="text" id="message" placeholder="Enter message to publish">
+        </div>
+        <div class="button-group">
+            <button onclick="start(document.getElementById('username').value)">Register</button>
+            <button
+                    onclick="subscribe(document.getElementById('username').value, document.getElementById('topic').value)">Subscribe
+            </button>
+            <button
+                    onclick="publish(document.getElementById('username').value, document.getElementById('topic').value)">Publish
+            </button>
+            <button class="close" onclick="stop(document.getElementById('username').value)">Close</button>
+        </div>
+        <div id="status" class="status"></div>
+
+
+    </div>
+    <div class="message-panel">
+        <div class="message-header">
+            <h2>Message Log</h2>
+            <button class="clear-button" onclick="clearMessages()">Clear</button>
+        </div>
+        <div id="messageList" class="message-list"></div>
+    </div>
+</div>
+
+<script>
+    var clients = {};
+    var clientPassword = {};
+    var globalDomain = localStorage.getItem('mqttServerDomain');
+
+    // Initialize the server domain input with the stored value
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('serverDomain').value = globalDomain;
+    });
+
+    function updateServerDomain() {
+        const newDomain = document.getElementById('serverDomain').value;
+        if (newDomain && newDomain !== globalDomain) {
+            const oldDomain = globalDomain;
+            globalDomain = newDomain;
+            localStorage.setItem('mqttServerDomain', globalDomain);
+            updateStatus(`Server URL changed from ${oldDomain} to ${globalDomain}`);
+
+            // Warn if there are connected clients
+            if (Object.keys(clients).length > 0) {
+                addMessage(`WARNING: Domain changed to ${globalDomain}. Existing connections will continue to use their original server. Only new connections will use the new server.`);
+            }
+        } else {
+            updateStatus('Server URL unchanged');
+        }
+    }
+
+    function updateStatus(message, isError = false) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = message;
+        statusDiv.className = 'status ' + (isError ? 'error' : '');
+    }
+
+    function addMessage(message) {
+        const messageList = document.getElementById('messageList');
+        const messageItem = document.createElement('div');
+        messageItem.className = 'message-item';
+        messageItem.textContent = message;
+        messageList.appendChild(messageItem);
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    function clearMessages() {
+        const messageList = document.getElementById('messageList');
+        messageList.innerHTML = '';
+        updateStatus('Message log cleared');
+    }
+
+    function updateClientList() {
+        const clientList = document.getElementById('clientList');
+        clientList.innerHTML = '';
+
+        const clientIds = Object.keys(clients);
+
+        if (clientIds.length === 0) {
+            const noClientsDiv = document.createElement('div');
+            noClientsDiv.className = 'no-clients';
+            noClientsDiv.textContent = 'No clients connected';
+            clientList.appendChild(noClientsDiv);
+            return;
+        }
+
+        clientIds.forEach(clientId => {
+            const clientItem = document.createElement('div');
+            clientItem.className = 'client-item';
+            clientItem.textContent = clientId;
+            clientItem.onclick = function () {
+                document.getElementById('username').value = clientId;
+                document.getElementById('password').value = clientPassword[clientId] || '';
+                updateStatus(`Selected client: ${clientId}`);
+            };
+            clientList.appendChild(clientItem);
+        });
+    }
+
+    function stop(username) {
+        if (clients[username]) {
+            clients[username].end();
+            delete clients[username];
+            delete clientPassword[username];
+            updateStatus(`${username} connection closed`);
+            addMessage(`${username} connection closed`);
+            updateClientList();
+        } else {
+            updateStatus(`${username} is not connected`, true);
+        }
+    }
+
+    function subscribe(username, topic) {
+        if (!topic) {
+            updateStatus('Please enter a topic', true);
+            return;
+        }
+        if (clients[username]) {
+            clients[username].subscribe(topic, {qos: 0}, (err) => {
+                if (err) {
+                    updateStatus(`${username} subscription failed: ${err.message}`, true);
+                } else {
+                    updateStatus(`${username} subscribed to ${topic}`);
+                    addMessage(`${username} subscribed to ${topic}`);
+                }
+            });
+        } else {
+            updateStatus(`${username} is not connected. Please register first.`, true);
+        }
+    }
+
+    function publish(username, topic) {
+        if (!topic) {
+            updateStatus('Please enter a topic', true);
+            return;
+        }
+        if (clients[username]) {
+            const message = document.getElementById('message').value || "hello world";
+            clients[username].publish(topic, message, {qos: 0}, (err) => {
+                if (err) {
+                    updateStatus(`${username} publish failed: ${err.message}`, true);
+                } else {
+                    updateStatus(`${username} published message to ${topic}`);
+                    addMessage(`${username} published message to ${topic}`);
+                }
+            });
+        } else {
+            updateStatus(`${username} is not connected. Please register first.`, true);
+        }
+    }
+
+    function start(username) {
+        if (!username) {
+            updateStatus('Please enter a username ID', true);
+            return;
+        }
+        if (clients[username]) {
+            updateStatus(`${username} is already connected`, true);
+            return;
+        }
+
+        let password = document.getElementById('password').value;
+        if (!password) {
+            password = "";
+        }
+
+        // Store the password
+        clientPassword[username] = password;
+
+        // Use the current globalDomain value
+        const currentDomain = globalDomain;
+        const config = {
+            domain: currentDomain,
+            config: {
+                username: username,
+                password: password,
+                keepalive: 20,
+                timeout: 3
+            }
+        }
+
+        addMessage(`${username} connecting to ${currentDomain}...`);
+        const client = mqtt.connect(config.domain, config.config);
+        clients[username] = client;
+        updateClientList();
+
+        client.on('connect', () => {
+            updateStatus(`${username} connected to MQTT server`);
+            addMessage(`${username} connected to MQTT server`);
+            updateClientList();
+        });
+
+        client.on('reconnect', (error) => {
+            updateStatus(`${username} reconnecting: ${error}`);
+            addMessage(`${username} reconnecting: ${error}`);
+        });
+
+        client.on('error', (error) => {
+            updateStatus(`${username} connection error: ${error}`, true);
+            addMessage(`${username} connection error: ${error}`);
+        });
+
+        client.on('message', (topic, message) => {
+            const messageText = `${username} received on ${topic}: ${message.toString()}`;
+            addMessage(messageText);
+        });
+    }
+
+    updateClientList();
+</script>
+</body>
+
+</html>
