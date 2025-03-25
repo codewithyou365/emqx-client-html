@@ -1,4 +1,4 @@
-[中文版](README.md)
+[English Version](README-EN.md)
 
 # 点一下star✨，是对作者最大的支持
 
